@@ -1,5 +1,5 @@
 import express from "express"
-import mongoose from "mongoose"
+import Database from "better-sqlite3"
 import cors from "cors"
 import dotenv from "dotenv"
 
@@ -10,23 +10,31 @@ import forgotPasswordRouter from "./routes/forgotPassword.js"
 //app config
 dotenv.config()
 const app = express()
-const port = process.env.PORT || 8001
-mongoose.set('strictQuery', true);
-
-//middlewares
 app.use(express.json())
-app.use(cors())
+app.use(cors({ origin: 'http://localhost:3000' }))
+const port = process.env.PORT || 8001
 
 //db config
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-}, (err) => {
-    if (err) {
-        console.log(err)
-    } else {
-        console.log("DB Connected")
-    }
-})
+const db = new Database("todo.db")
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    resetToken TEXT
+  )
+`).run()
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    userId INTEGER NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    createdAt TEXT DEFAULT (datetime('now'))
+  )
+`).run()
 
 //api endpoints
 app.use("/api/user", userRouter)
